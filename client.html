@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Experience | Feedback</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background: radial-gradient(circle at center, #111827, #000000); 
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.03); 
+            backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 28px; 
+        }
+        .star { 
+            cursor: pointer; 
+            font-size: 3.5rem; 
+            color: rgba(255, 255, 255, 0.1); 
+            transition: all 0.2s ease;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .star.hovered, .star.active { 
+            color: #fbbf24; 
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+            transform: scale(1.1);
+        }
+        .btn-glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-6">
+
+    <div id="card" class="glass-card p-10 w-full max-w-md text-center shadow-2xl border border-white/10">
+        <div class="mb-8">
+            <div class="w-16 h-16 bg-blue-600 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+                <span class="text-2xl font-bold">⭐</span>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight">How was your visit?</h2>
+            <p class="text-gray-400 mt-2 text-sm">Your feedback helps us serve you better.</p>
+        </div>
+        
+        <div id="star-container" class="flex justify-center gap-2 mb-8">
+            <span class="star" onmouseover="hoverStar(1)" onmouseleave="resetStars()" onclick="handleRate(1)">★</span>
+            <span class="star" onmouseover="hoverStar(2)" onmouseleave="resetStars()" onclick="handleRate(2)">★</span>
+            <span class="star" onmouseover="hoverStar(3)" onmouseleave="resetStars()" onclick="handleRate(3)">★</span>
+            <span class="star" onmouseover="hoverStar(4)" onmouseleave="resetStars()" onclick="handleRate(4)">★</span>
+            <span class="star" onmouseover="hoverStar(5)" onmouseleave="resetStars()" onclick="handleRate(5)">★</span>
+        </div>
+
+        <div id="feedback-form" class="hidden transition-all duration-500 transform translate-y-4">
+            <p class="text-amber-400 mb-4 text-sm font-medium">Please tell us how we can improve. Your feedback goes directly to the manager.</p>
+            <textarea id="comment" 
+                class="w-full p-4 bg-white/5 rounded-xl border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white mb-4 h-32 placeholder-gray-500" 
+                placeholder="What could we have done better?"></textarea>
+            <button onclick="submitFeedback()" 
+                class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold transition-all btn-glow active:scale-95">
+                Submit Feedback
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // CLIENT CONFIGURATION
+        const GOOGLE_REVIEW_URL = "https://google.com"; // Replace with client's actual Google Maps link
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzq_uULRwBReNl7EYbDpKJ8USflnCng2naE6wRrB1ZqH7FPs-GqbxXzHpOVS9jRHwpgJg/exec"; 
+
+        let currentRating = 0;
+        const stars = document.querySelectorAll('.star');
+
+        function hoverStar(count) {
+            stars.forEach((s, i) => {
+                if (i < count) s.classList.add('hovered');
+                else s.classList.remove('hovered');
+            });
+        }
+
+        function resetStars() {
+            stars.forEach(s => s.classList.remove('hovered'));
+        }
+
+        function handleRate(rating) {
+            currentRating = rating;
+            
+            if (rating >= 4) {
+                // SUCCESS: Record the positive signal silently
+                const silentUrl = APPS_SCRIPT_URL + "?rating=" + rating + "&feedback=" + encodeURIComponent("Positive (Redirected to Google)");
+                
+                // Fetch with 'keepalive' ensures the record is saved even if the browser closes/redirects
+                fetch(silentUrl, { method: 'POST', mode: 'no-cors', keepalive: true });
+
+                // UI feedback before redirect
+                document.getElementById('card').innerHTML = `
+                    <div class="animate-pulse">
+                        <h2 class='text-2xl font-bold'>Excellent!</h2>
+                        <p class='text-gray-400 mt-2'>Redirecting you to Google to share your experience...</p>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    window.location.href = GOOGLE_REVIEW_URL;
+                }, 1200);
+
+            } else {
+                // CRITICAL: Block public review, show private feedback form
+                document.getElementById('star-container').style.display = 'none';
+                document.getElementById('feedback-form').classList.remove('hidden');
+            }
+        }
+
+        function submitFeedback() {
+            const comment = document.getElementById('comment').value;
+            if(!comment) { alert("Please enter a comment"); return; }
+
+            const fullUrl = APPS_SCRIPT_URL + "?rating=" + currentRating + "&feedback=" + encodeURIComponent(comment);
+
+            fetch(fullUrl, { method: 'POST', mode: 'no-cors' })
+            .then(() => {
+                document.getElementById('card').innerHTML = `
+                    <div class="py-10">
+                        <div class="text-5xl mb-4">✅</div>
+                        <h2 class='text-2xl font-bold'>Feedback Sent</h2>
+                        <p class='text-gray-400 mt-2'>Thank you for helping us improve. The management has been notified.</p>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
