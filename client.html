@@ -85,50 +85,52 @@
             stars.forEach(s => s.classList.remove('hovered'));
         }
 
-function handleRate(rating) {
-    currentRating = rating;
-    
-    if (rating >= 4) {
-        const silentUrl = APPS_SCRIPT_URL + "?rating=" + rating + "&feedback=" + encodeURIComponent("Positive (Redirected to Google)");
-        
-        // Changed to default GET mode
-        fetch(silentUrl, { method: 'GET' });
+  function handleRate(rating) {
+            currentRating = rating;
+            
+            if (rating >= 4) {
+                // SUCCESS: Record the positive signal silently
+                const silentUrl = APPS_SCRIPT_URL + "?rating=" + rating + "&feedback=" + encodeURIComponent("Positive (Redirected to Google)");
+                
+                // Fetch with 'keepalive' ensures the record is saved even if the browser closes/redirects
+                fetch(silentUrl, { method: 'POST', mode: 'no-cors', keepalive: true });
 
-        document.getElementById('card').innerHTML = `
-            <div class="animate-pulse">
-                <h2 class='text-2xl font-bold'>Excellent!</h2>
-                <p class='text-gray-400 mt-2'>Redirecting you to Google to share your experience...</p>
-            </div>
-        `;
-        
-        setTimeout(() => {
-            window.location.href = GOOGLE_REVIEW_URL;
-        }, 1200);
+                // UI feedback before redirect
+                document.getElementById('card').innerHTML = `
+                    <div class="animate-pulse">
+                        <h2 class='text-2xl font-bold'>Excellent!</h2>
+                        <p class='text-gray-400 mt-2'>Redirecting you to Google to share your experience...</p>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    window.location.href = GOOGLE_REVIEW_URL;
+                }, 1200);
 
-    } else {
-        document.getElementById('star-container').style.display = 'none';
-        document.getElementById('feedback-form').classList.remove('hidden');
-    }
-}
+            } else {
+                // CRITICAL: Block public review, show private feedback form
+                document.getElementById('star-container').style.display = 'none';
+                document.getElementById('feedback-form').classList.remove('hidden');
+            }
+        }
 
-function submitFeedback() {
-    const comment = document.getElementById('comment').value;
-    if(!comment) { alert("Please enter a comment"); return; }
+        function submitFeedback() {
+            const comment = document.getElementById('comment').value;
+            if(!comment) { alert("Please enter a comment"); return; }
 
-    const fullUrl = APPS_SCRIPT_URL + "?rating=" + currentRating + "&feedback=" + encodeURIComponent(comment);
+            const fullUrl = APPS_SCRIPT_URL + "?rating=" + currentRating + "&feedback=" + encodeURIComponent(comment);
 
-    // Changed to default GET mode
-    fetch(fullUrl, { method: 'GET' })
-    .then(() => {
-        document.getElementById('card').innerHTML = `
-            <div class="py-10">
-                <div class="text-5xl mb-4">✅</div>
-                <h2 class='text-2xl font-bold'>Feedback Sent</h2>
-                <p class='text-gray-400 mt-2'>Thank you for helping us improve. The management has been notified.</p>
-            </div>
-        `;
-    }).catch(err => console.log("Submission caught:", err));
-}
+            fetch(fullUrl, { method: 'POST', mode: 'no-cors' })
+            .then(() => {
+                document.getElementById('card').innerHTML = `
+                    <div class="py-10">
+                        <div class="text-5xl mb-4">✅</div>
+                        <h2 class='text-2xl font-bold'>Feedback Sent</h2>
+                        <p class='text-gray-400 mt-2'>Thank you for helping us improve. The management has been notified.</p>
+                    </div>
+                `;
+            });
+        }
     </script>
 </body>
 </html>
